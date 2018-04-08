@@ -6,7 +6,7 @@ import time
 
 import tensorflow as tf
 
-from abstract_inference_service import AbstractInferenceService
+from .abstract_inference_service import AbstractInferenceService
 
 
 class TensorFlowInferenceService(AbstractInferenceService):

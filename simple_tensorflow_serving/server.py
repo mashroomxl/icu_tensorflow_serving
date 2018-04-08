@@ -2,7 +2,7 @@
 
 import argparse
 #import argcomplete
-import cStringIO
+from io import StringIO
 import json
 import logging
 import sys
@@ -12,9 +12,9 @@ import numpy as np
 from flask import Flask, Response, jsonify, render_template, request
 from PIL import Image
 
-from gen_client import gen_client
-from tensorflow_inference_service import TensorFlowInferenceService
-from mxnet_inference_service import MxnetInferenceService
+from .gen_client import gen_client
+from .tensorflow_inference_service import TensorFlowInferenceService
+from .mxnet_inference_service import MxnetInferenceService
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -229,7 +229,7 @@ def inference():
 
     image_content = request.files["image"].read()
     image_string = np.fromstring(image_content, np.uint8)
-    image_string_io = cStringIO.StringIO(image_string)
+    image_string_io = StringIO(image_string)
     image_file = Image.open(image_string_io)
     image_array = np.array(image_file)
 

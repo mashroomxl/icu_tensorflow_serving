@@ -5,7 +5,7 @@ import json
 import numpy as np
 from collections import namedtuple
 
-from abstract_inference_service import AbstractInferenceService
+from .abstract_inference_service import AbstractInferenceService
 
 
 class MxnetInferenceService(AbstractInferenceService):

@@ -2,10 +2,10 @@ import logging
 
 import tensorflow as tf
 
-import gen_bash
-import gen_golang
-import gen_javascript
-import gen_python
+from . import gen_bash
+from . import gen_golang
+from . import gen_javascript
+from . import gen_python
 
 
 def gen_tensorflow_client(tensorflow_inference_service, language, model_name):
@@ -71,7 +71,7 @@ def gen_tensorflow_client(tensorflow_inference_service, language, model_name):
                 tf.int32) or dtype == int(tf.uint32):
           default_value = 1
         elif dtype == int(tf.int64) or dtype == int(tf.uint64):
-          default_value = 1l
+          default_value = 1
         elif dtype == int(tf.int32):
           default_value = True
         elif dtype == int(tf.string):
