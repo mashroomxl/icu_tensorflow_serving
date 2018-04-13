@@ -1,5 +1,5 @@
 flask
 jinja2
 pillow
-tensorflow>=1.0.0
-mxnet
+tensorflow>=1.7.0
+hdfs[avro, dataframe, kerberos]

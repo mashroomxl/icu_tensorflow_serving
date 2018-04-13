@@ -3,6 +3,9 @@ import os
 import signal
 import threading
 import time
+from simple_tensorflow_serving.conf import config
+from urllib.parse import urlparse
+from .sources import io_client
 
 import tensorflow as tf
 
@@ -14,7 +17,7 @@ class TensorFlowInferenceService(AbstractInferenceService):
   The TensorFlow service to load TensorFlow SavedModel and make inference.
   """
 
-    def __init__(self, model_name, model_base_path, custom_op_paths="", verbose=False):
+    def __init__(self, model_name, model_base_path, custom_op_paths="", verbose=True):
         """
     Initialize the TensorFlow service by loading SavedModel to the Session.
         
@@ -27,11 +30,18 @@ class TensorFlowInferenceService(AbstractInferenceService):
 
         super(TensorFlowInferenceService, self).__init__()
 
+        model_url = urlparse(model_base_path)
+        if 'HDFS'.casefold() == model_url.schme.casefold():
+            hdfs_host = model_url.host
+            hdfs_port = model_url.port
+            self.is_hdfs = True
+            self.hdfs_client = io_client.HdfsClient(hdfs_host, hdfs_port)
+
         self.model_name = model_name
         self.model_base_path = model_base_path
         self.model_version_list = []
         self.model_graph_signature = None
-        self.platform = "TensorFlow"
+        self.platform = "tensorflow"
 
         if custom_op_paths != "":
             self.load_custom_op(custom_op_paths)
@@ -93,7 +103,11 @@ class TensorFlowInferenceService(AbstractInferenceService):
 
         while self.should_stop_all_threads == False:
             # TODO: Add lock if needed
-            current_model_versions_string = os.listdir(self.model_base_path)
+            if self.is_hdfs:
+                current_model_versions_string = self.hdfs_client.listdir(self.model_base_path)
+            else:
+                current_model_versions_string = os.listdir(self.model_base_path)
+
             current_model_versions = set([
                 int(version_string)
                 for version_string in current_model_versions_string
@@ -135,11 +149,16 @@ class TensorFlowInferenceService(AbstractInferenceService):
         self.version_session_map[str(model_version)] = session
         self.model_version_list.append(model_version)
 
-        model_file_path = os.path.join(self.model_base_path, str(model_version))
+        # model_file_path = os.path.join(self.model_base_path, str(model_version))
+        model_store_path = os.path.join(self.model_base_path, str(model_version))
+        if self.is_hdfs:
+            model_local_path = f"{os.getcwd()}/model"
+            model_store_path = self.hdfs_client.download(model_store_path, model_local_path)
+
         logging.info("Put the model version: {} online, path: {}".format(
-            model_version, model_file_path))
+            model_version, model_store_path))
         meta_graph = tf.saved_model.loader.load(
-            session, [tf.saved_model.tag_constants.SERVING], model_file_path)
+            session, [tf.saved_model.tag_constants.SERVING], model_store_path)
         self.model_graph_signature = list(meta_graph.signature_def.items())[0][1]
 
     def get_one_model_version(self):

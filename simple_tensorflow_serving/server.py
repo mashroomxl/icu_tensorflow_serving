@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
+import os
 import argparse
-#import argcomplete
+# import argcomplete
 from io import StringIO
 import json
 import logging
@@ -82,14 +83,14 @@ parser.add_argument(
     type=bool)
 
 # TODO: Support auto-complete
-#argcomplete.autocomplete(parser)
+# argcomplete.autocomplete(parser)
 
 if len(sys.argv) == 1:
   args = parser.parse_args(["-h"])
   args.func(args)
 else:
   args = parser.parse_args(sys.argv[1:])
-  #import ipdb;ipdb.set_trace()
+  # import ipdb;ipdb.set_trace()
 
   for arg in vars(args):
     logging.info("{}: {}".format(arg, getattr(args, arg)))
@@ -179,7 +180,9 @@ if args.model_config_file != "":
 else:
   # Read from command-line parameter
   if args.model_platform == "tensorflow":
-    inference_service = TensorFlowInferenceService(args.model_name, args.model_base_path, args.custom_op_paths, args.verbose)
+    model_base_path = os.environ['MODEL_BASE_PATH']
+    model_name = os.path.basename(model_base_path)
+    inference_service = TensorFlowInferenceService(model_name, model_base_path, args.custom_op_paths, args.verbose)
   elif args.model_platform == "mxnet":
     inference_service = MxnetInferenceService(args.model_name, args.model_base_path, args.verbose)
 
@@ -202,9 +205,15 @@ if args.reload_models == "True" or args.reload_models == "true":
       inference_service.dynmaically_reload_models()
 
 
+@application.route("/deploy", methods=["GET"])
+def deploy():
+    request.form["model_base_path"]
+    request.form["num_gpu"]
+
+
 # The API to render the dashboard page
 @application.route("/", methods=["GET"])
-@requires_auth
+# @requires_auth
 def index():
   return render_template(
       "index.html",
@@ -213,7 +222,7 @@ def index():
 
 # The API to rocess inference request
 @application.route("/", methods=["POST"])
-@requires_auth
+# @requires_auth
 def inference():
 
   # Process requests with json data
