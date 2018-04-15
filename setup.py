@@ -9,7 +9,7 @@ except ImportError:
   from distutils.core import setup
 
 setup(
-    name="icu_tensorflow_serving",
+    name="simple_tensorflow_serving",
     version="0.1",
     author="icm",
     author_email="mashroomxl@gmail.com",
@@ -19,32 +19,12 @@ setup(
     packages=[
         "simple_tensorflow_serving",
         "simple_tensorflow_serving.gen_client",
-        "simple_tensorflow_serving.conf"
+        "simple_tensorflow_serving.conf",
+        "simple_tensorflow_serving.sources",
+        "simple_tensorflow_serving.static",
+        "simple_tensorflow_serving.templates"
     ],
-    package_data={
-        "simple_tensorflow_serving": [
-            'static',
-            'static/bootstrap-4.0.0-dist',
-            'static/bootstrap-4.0.0-dist/*',
-            'static/bootstrap-4.0.0-dist/css',
-            'static/bootstrap-4.0.0-dist/js',
-            'static/images',
-            'static/images/*',
-            'static/jquery',
-            'static/jquery/*',
-            'static/jquery/dist',
-            'static/jquery/dist/*',
-            'static/jquery/external',
-            'static/jquery/external/sizzle',
-            'static/jquery/external/sizzle/*',
-            'static/jquery/external/sizzle/dist',
-            'static/jquery/external/sizzle/dist/*',
-            'static/jquery/src'
-        ],
-        "simple_tensorflow_serving": [
-            'templates/*'
-        ]
-    },
+    package_data={'templates': ['*'], 'static': ['*']},
     include_package_data=True,
     zip_safe=False,
     entry_points={
