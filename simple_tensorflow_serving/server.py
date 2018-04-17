@@ -31,14 +31,14 @@ parser.add_argument(
     "--host", default="0.0.0.0", help="The host of the server(eg. 0.0.0.0)")
 parser.add_argument(
     "--port", default=8500, help="The port of the server(eg. 8500)", type=int)
-parser.add_argument(
-    "--model_name",
-    default="default",
-    help="The name of the model(eg. default)")
-parser.add_argument(
-    "--model_base_path",
-    default="./model",
-    help="The file path of the model(eg. 8500)")
+# parser.add_argument(
+#     "--model_name",
+#     default="default",
+#     help="The name of the model(eg. default)")
+# parser.add_argument(
+#     "--model_base_path",
+#     default="./model",
+#     help="The file path of the model(eg. 8500)")
 parser.add_argument(
     "--model_platform",
     default="tensorflow",
@@ -50,7 +50,7 @@ parser.add_argument(
 # TODO: type=bool not works, make it true by default if fixing exit bug
 parser.add_argument(
     "--reload_models",
-    default="False",
+    default="True",
     help="Reload models or not(eg. True)")
 parser.add_argument(
     "--custom_op_paths",
@@ -178,22 +178,21 @@ if args.model_config_file != "":
 
       model_name_service_map[model_name] = inference_service
 else:
-  # Read from command-line parameter
+  # Read from environment variables
+  model_base_path = os.environ['MODEL_BASE_PATH'].rstrip('/')
+  model_name = os.path.basename(model_base_path)
   if args.model_platform == "tensorflow":
-    model_base_path = os.environ['MODEL_BASE_PATH']
-    model_name = os.path.basename(model_base_path)
     inference_service = TensorFlowInferenceService(model_name, model_base_path, args.custom_op_paths, args.verbose)
   elif args.model_platform == "mxnet":
-    inference_service = MxnetInferenceService(args.model_name, args.model_base_path, args.verbose)
+    inference_service = MxnetInferenceService(model_name, args.model_base_path, args.verbose)
 
-  model_name_service_map[args.model_name] = inference_service
-
+  model_name_service_map[model_name] = inference_service
 
 # Generate client code and exit or not
 if args.gen_client != "":
   if args.model_platform == "tensorflow":
-    inference_service = model_name_service_map[args.model_name]
-    gen_client.gen_tensorflow_client(inference_service, args.gen_client, args.model_name)
+    inference_service = model_name_service_map[model_name]
+    gen_client.gen_tensorflow_client(inference_service, args.gen_client, model_name)
 
   exit(0)
 

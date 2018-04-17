@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import signal
 import threading
 import time
@@ -29,17 +30,16 @@ class TensorFlowInferenceService(AbstractInferenceService):
         super(TensorFlowInferenceService, self).__init__()
 
         model_url = urlparse(model_base_path)
-        self.is_hdfs = False
-        self.hdfs_client = None
         if 'HDFS'.casefold() == model_url.scheme.casefold():
             logging.info('enter the hdfs logic')
-            hdfs_host = model_url.hostname
-            hdfs_port = model_url.port
             self.is_hdfs = True
-            self.hdfs_client = io_client.HdfsClient(hdfs_host, hdfs_port)
+            self.model_base_path = model_url.path
+            self.hdfs_client = io_client.HdfsClient(model_url.netloc)
+        else:
+            self.is_hdfs = False
+            self.model_base_path = model_base_path
 
         self.model_name = model_name
-        self.model_base_path = model_base_path
         self.model_version_list = []
         self.model_graph_signature = None
         self.platform = "tensorflow"
@@ -55,6 +55,10 @@ class TensorFlowInferenceService(AbstractInferenceService):
         # Register the signals to exist
         signal.signal(signal.SIGTERM, self.stop_all_threads)
         signal.signal(signal.SIGINT, self.stop_all_threads)
+
+        model_versions = self.get_all_model_versions()
+        for model_version in model_versions:
+            self.load_saved_model_version(model_version)
 
     def load_model(self):
         model_versions = self.get_all_model_versions()
@@ -148,16 +152,24 @@ class TensorFlowInferenceService(AbstractInferenceService):
         self.model_version_list.append(model_version)
 
         # model_file_path = os.path.join(self.model_base_path, str(model_version))
-        model_store_path = os.path.join(self.model_base_path, str(model_version))
+        model_store_path = f"{self.model_base_path}/{model_version}"
         if self.is_hdfs:
-            model_local_path = f"{os.getcwd()}/model"
+            model_local_path = f"{os.getcwd()}/models/{self.model_name}"
+            # if target dir does not exist, create it.
+            if not os.path.exists(model_local_path):
+                os.makedirs(model_local_path)
+
+            version_path = f"{model_local_path}/{model_version}"
+            # if model of current version exists, just overwrite it.
+            if os.path.exists(version_path):
+                shutil.rmtree(version_path)
+
             logging.info(f"downloading the model from {model_store_path} to {model_local_path}")
             model_store_path = self.hdfs_client.download(model_store_path, model_local_path)
 
         logging.info("Put the model version: {} online, path: {}".format(
             model_version, model_store_path))
-        meta_graph = tf.saved_model.loader.load(
-            session, [tf.saved_model.tag_constants.SERVING], model_store_path)
+        meta_graph = tf.saved_model.loader.load(session, [tf.saved_model.tag_constants.SERVING], model_store_path)
         self.model_graph_signature = list(meta_graph.signature_def.items())[0][1]
 
     def get_one_model_version(self):

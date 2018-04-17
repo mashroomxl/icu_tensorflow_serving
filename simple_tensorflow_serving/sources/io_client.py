@@ -4,13 +4,11 @@ from hdfs.ext.kerberos import KerberosClient
 
 
 class HdfsClient:
-    def __init__(self, host, port=50070):
-        self.host = host
-        self.port = port
+    def __init__(self, netloc):
         if 'kerberos'.casefold() == config.SECURE_CONFIG['auth_method'].casefold():
-            self.client = KerberosClient(f"http://{host}:{port}")
+            self.client = KerberosClient(f"http://{netloc}")
         else:
-            self.client = InsecureClient(f"http://{host}:{port}")
+            self.client = InsecureClient(f"http://{netloc}")
 
     def listdir(self, dir, status=False):
         # assert os.path.isdir(dir), "expect a directory to list, but got non-directory"

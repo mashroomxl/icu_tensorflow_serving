@@ -47,7 +47,7 @@ def gen_tensorflow_client(tensorflow_inference_service, language, model_name):
       "The input operator and shape: {}".format(input_opname_shape_map))
 
   # Example: {"keys": [[1.0], [2.0]], "features": [[1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1]]}
-  generated_tensor_data = {}
+  generated_tensor_data = {"keys": [[], []], "features": [[], []]}
 
   batch_size = 2
   for opname, shapes in input_opname_shape_map.items():
