@@ -31,7 +31,7 @@ class TensorFlowInferenceService(AbstractInferenceService):
         super(TensorFlowInferenceService, self).__init__()
 
         model_url = urlparse(model_base_path)
-        if 'HDFS'.casefold() == model_url.schme.casefold():
+        if 'HDFS'.casefold() == model_url.scheme.casefold():
             hdfs_host = model_url.host
             hdfs_port = model_url.port
             self.is_hdfs = True
