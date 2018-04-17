@@ -7,7 +7,7 @@ class HdfsClient:
     def __init__(self, host, port=50070):
         self.host = host
         self.port = port
-        if 'HDFS' == config.SOURCES['model_store']:
+        if 'kerberos'.casefold() == config.SECURE_CONFIG['auth_method'].casefold():
             self.client = KerberosClient(f"http://{host}:{port}")
         else:
             self.client = InsecureClient(f"http://{host}:{port}")

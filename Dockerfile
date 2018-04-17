@@ -11,4 +11,4 @@ RUN python ./setup.py install
 
 EXPOSE 8500
 
-CMD ["simple_tensorflow_serving", "--port=8500", "--model_base_path=./models/", "--gen_client=python"]
+CMD ["simple_tensorflow_serving", "--port=8500"]

@@ -3,14 +3,12 @@ import os
 import signal
 import threading
 import time
-from simple_tensorflow_serving.conf import config
 from urllib.parse import urlparse
-from .sources import io_client
 
 import tensorflow as tf
 
 from .abstract_inference_service import AbstractInferenceService
-
+from .sources import io_client
 
 class TensorFlowInferenceService(AbstractInferenceService):
     """
@@ -20,7 +18,7 @@ class TensorFlowInferenceService(AbstractInferenceService):
     def __init__(self, model_name, model_base_path, custom_op_paths="", verbose=True):
         """
     Initialize the TensorFlow service by loading SavedModel to the Session.
-        
+
     Args:
       model_name: The name of the model.
       model_base_path: The file path of the model.
@@ -31,8 +29,11 @@ class TensorFlowInferenceService(AbstractInferenceService):
         super(TensorFlowInferenceService, self).__init__()
 
         model_url = urlparse(model_base_path)
+        self.is_hdfs = False
+        self.hdfs_client = None
         if 'HDFS'.casefold() == model_url.scheme.casefold():
-            hdfs_host = model_url.host
+            logging.info('enter the hdfs logic')
+            hdfs_host = model_url.hostname
             hdfs_port = model_url.port
             self.is_hdfs = True
             self.hdfs_client = io_client.HdfsClient(hdfs_host, hdfs_port)
@@ -55,6 +56,7 @@ class TensorFlowInferenceService(AbstractInferenceService):
         signal.signal(signal.SIGTERM, self.stop_all_threads)
         signal.signal(signal.SIGINT, self.stop_all_threads)
 
+    def load_model(self):
         model_versions = self.get_all_model_versions()
         for model_version in model_versions:
             self.load_saved_model_version(model_version)
@@ -103,11 +105,7 @@ class TensorFlowInferenceService(AbstractInferenceService):
 
         while self.should_stop_all_threads == False:
             # TODO: Add lock if needed
-            if self.is_hdfs:
-                current_model_versions_string = self.hdfs_client.listdir(self.model_base_path)
-            else:
-                current_model_versions_string = os.listdir(self.model_base_path)
-
+            current_model_versions_string = self.get_model_ver_str()
             current_model_versions = set([
                 int(version_string)
                 for version_string in current_model_versions_string
@@ -153,6 +151,7 @@ class TensorFlowInferenceService(AbstractInferenceService):
         model_store_path = os.path.join(self.model_base_path, str(model_version))
         if self.is_hdfs:
             model_local_path = f"{os.getcwd()}/model"
+            logging.info(f"downloading the model from {model_store_path} to {model_local_path}")
             model_store_path = self.hdfs_client.download(model_store_path, model_local_path)
 
         logging.info("Put the model version: {} online, path: {}".format(
@@ -162,24 +161,30 @@ class TensorFlowInferenceService(AbstractInferenceService):
         self.model_graph_signature = list(meta_graph.signature_def.items())[0][1]
 
     def get_one_model_version(self):
-        current_model_versions_string = os.listdir(self.model_base_path)
+        current_model_versions_string = self.get_model_ver_str()
         if len(current_model_versions_string) > 0:
             return int(current_model_versions_string[0])
         else:
             logging.error("No model version found")
 
     def get_all_model_versions(self):
-        current_model_versions_string = os.listdir(self.model_base_path)
+        current_model_versions_string = self.get_model_ver_str()
         if len(current_model_versions_string) > 0:
             model_versions = [int(model_version_string) for model_version_string in current_model_versions_string]
             return model_versions
         else:
             logging.error("No model version found")
 
+    def get_model_ver_str(self):
+        if self.is_hdfs:
+            return self.hdfs_client.listdir(self.model_base_path)
+        else:
+            return os.listdir(self.model_base_path)
+
     def inference(self, json_data):
         """
     Make inference with the current Session object and JSON request data.
-        
+
     Args:
       json_data: The JSON serialized object with key and array data.
                  Example is {"model_version": 1, "data": {"keys": [[1.0], [2.0]], "features": [[10, 10, 10, 8, 6, 1, 8, 9, 1], [6, 2, 1, 1, 1, 1, 7, 1, 1]]}}.

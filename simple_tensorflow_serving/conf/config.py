@@ -1,5 +1,5 @@
 SECURE_CONFIG = {
-    'auth': 'simple',
+    'auth_method': 'simple',
     'kerberos-principal': 'miner@example.com',
     'kerberos-keytab': '/fullpath/miner.keytab'
 }
